@@ -14,6 +14,7 @@ const fsx = require('fs-extra')
 const util = require('util')
 const fetch = require('node-fetch')
 const axios = require('axios')
+const path = require("path")
 const cheerio = require('cheerio')
 const { performance } = require("perf_hooks");
 const { TelegraPH } = require("./lib/TelegraPH")
@@ -24,6 +25,7 @@ const os = require('os');
 const didyoumean = require('didyoumean');
 const checkDiskSpace = require('check-disk-space').default;
 const speed = require('performance-now')
+const { jadibot, conns } = require("./lib/jadibot/clone.js")
 const similarity = require('similarity');
 const X = "`"
 const chalk = require("chalk")
@@ -31,7 +33,7 @@ const { generateWAMessage, areJidsSameUser, proto, downloadContentFromMessage, p
 const { default: makeWASocket, useMultiFileAuthState } = require("@adiwajshing/baileys")
 const more = String.fromCharCode(8206);
 const readmore = more.repeat(4800)
-const { bytesToSize, checkBandwidth, formatSize, getBuffer, isUrl, jsonformat, nganuin, pickRandom, runtime, shorturl, formatp, color, getGroupAdmins } = require("./lib/myfunc");
+const { bytesToSize, checkBandwidth, formatSize, getBuffer, isUrl, jsonformat, nganuin, pickRandom, runtime, shorturl, formatp, color, getGroupAdmins, sleep } = require("./lib/myfunc");
 const { FajarNews, BBCNews, metroNews, CNNNews, iNews, KumparanNews, TribunNews, DailyNews, DetikNews, OkezoneNews, CNBCNews, KompasNews, SindoNews, TempoNews, IndozoneNews, AntaraNews, RepublikaNews, VivaNews, KontanNews, MerdekaNews, KomikuSearch, AniPlanetSearch, KomikFoxSearch, KomikStationSearch, MangakuSearch, KiryuuSearch, KissMangaSearch, KlikMangaSearch, PalingMurah, LayarKaca21, AminoApps, Mangatoon, WAModsSearch, Emojis, CoronaInfo, JalanTikusMeme,Cerpen, Quotes, Couples, Darkjokes } = require("dhn-api");
 const { addExif } = require('./lib/exif')
 const { youtube } = require("btch-downloader");
@@ -261,7 +263,7 @@ ptz.sendMessage(id, {
            fileName: global.filename,
            fileLength: 99999999999999,
             mimetype: 'image/png',
-           jpegThumbnail:fs.readFileSync("./lib/Image/doc.jpg"),
+           jpegThumbnail:fs.readFileSync("./assets/Gallery/doc.jpg"),
             caption: "\n" + teks,
 }, { quoted:fsaluran,ephemeralExpiration: 86400});
 }
@@ -427,7 +429,7 @@ try {
            fileName: global.filename,
            fileLength: 99999999999999,
             mimetype: 'image/png',
-           jpegThumbnail:fs.readFileSync("./lib/Image/doc.jpg"),
+           jpegThumbnail:fs.readFileSync("./assets/Gallery/doc.jpg"),
          caption: "\n" + didyoumenn,
       buttons:  [
     {
@@ -442,6 +444,42 @@ try {
  return;
  }
 }
+const { handleCommand, handleEvalCommand } = require('./extension/@Razaq-Plugin/handlers/commandHandler.js');
+const { initPlugins } = require('./extension/@Razaq-Plugin/handlers/pluginHandler.js');
+const { Events, Coordinator } = require('./extension/@Razaq-Plugin/helper/constant.js');
+const pluginDir = path.resolve(__dirname, './extension/@Razaq-Plugin/plugins');
+const helper = { ptz, isCreator, reply, command, isPremium, isCmd, text, runtime, qmsg, mime, sleep, botNumber }
+initPlugins(pluginDir, ptz);
+handleCommand(m.text, m, ptz, ".", sleep);
+const pluginsLoader = async (directory) => {
+let plugins = []
+const folders = fs.readdirSync(directory)
+folders.forEach(file => {
+const filePath = path.join(directory, file)
+if (filePath.endsWith(".js")) {
+try {
+const resolvedPath = require.resolve(filePath);
+if (require.cache[resolvedPath]) {
+delete require.cache[resolvedPath]
+}
+const plugin = require(filePath)
+plugins.push(plugin)
+} catch (error) {
+console.log(`Error loading plugin at ${filePath}:`, error)
+}}
+})
+return plugins
+}
+let pluginsDisable = true
+const plugins = await pluginsLoader(path.resolve(__dirname, "./extension/@Cjs-Plugin/plugins"))
+for (let plugin of plugins) {
+if (plugin.command.find(e => e == command.toLowerCase())) {
+pluginsDisable = false
+if (typeof plugin !== "function") return
+await plugin(m, helper)
+}
+}
+if (!pluginsDisable) return
 if (isCmd) {
      /* console.log(command)
      if (body.match(prefix)) {*/
@@ -509,6 +547,19 @@ return resulto
 if (e == undefined) return 
 console.log("!")
 }
+}
+function msToTime(duration) {
+  var milliseconds = parseInt((duration % 1000) / 100),
+    seconds = Math.floor((duration / 1000) % 60),
+    minutes = Math.floor((duration / (1000 * 60)) % 60),
+    hours = Math.floor((duration / (1000 * 60 * 60)) % 24)
+    
+  
+  hours = (hours < 10) ? "0" + hours : hours
+  minutes = (minutes < 10) ? "0" + minutes : minutes
+  seconds = (seconds < 10) ? "0" + seconds : seconds
+
+  return hours + " jam " + minutes + " menit " + seconds + " detik"
 }
 const totalfitur = await totalfiturr()
 async function kirimstik(linknya) {
@@ -805,7 +856,7 @@ function cekJadibotEx() {
     const now1 = new Date();
     Object.keys(jadibotJson1).forEach(chatId => {
         const targetTime = new Date(jadibotJson1[chatId].targetTime);
-        if (chatId === ptz.decodeJid(ptz.user.id)) return;
+        if (chatId === botNumber) return;
         if (now1 >= targetTime) {
             ptz.sendMessage(chatId, { 
                 text: 'Memasuki Tanggal Expire - session jadibot telah ter Suspend, ambil sessionmu atau renew!' 
@@ -844,27 +895,13 @@ if (!isCreator && settingdb.onlypc && m.isGroup) {
 	 return;
   }
 }
+
 //===============
 setInterval(() => {
     cekJadibotEx();
 }, 10000);
 switch(command) {
 //=============[ MAIN - MENU ]=================//
-case 'everyone': 
- ptz.sendMessage(m.chat, {
-text: "@" + m.chat,
-contextInfo: {
-groupMentions: [
-{
-groupJid: m.chat,
-groupSubject: 'kijo suka loli'
-}
-]
-}
-}
-)
-break
-
 case "menu": 
 const xtexg = `${resver}
 ${readmore}
@@ -876,7 +913,7 @@ ptz.sendMessage(m.chat, {
     document: fs.readFileSync("./package.json"),
     fileName: global.jpegfile,
     mimetype: 'application/msword',
-    jpegThumbnail: fs.readFileSync("./lib/Image/doc3.jpg"), 
+    jpegThumbnail: fs.readFileSync("./assets/Gallery/doc3.jpg"), 
     contextInfo: {
         mentionedJid: [m.sender], 
         isForwarded: true,
@@ -911,7 +948,7 @@ ptz.sendMessage(m.chat, {
     document: fs.readFileSync("./package.json"),
     fileName: global.jpegfile,
     mimetype: 'image/png',
-    jpegThumbnail: fs.readFileSync("./lib/Image/doc.jpg"), 
+    jpegThumbnail: fs.readFileSync("./assets/Gallery/doc.jpg"), 
     contextInfo: {
         mentionedJid: [m.sender], 
         isForwarded: true,
@@ -950,7 +987,7 @@ ptz.sendMessage(m.chat, {
     document: fs.readFileSync("./package.json"),
     fileName: global.filename, 
     mimetype: 'application/msword',
-    jpegThumbnail: fs.readFileSync("./lib/Image/doc2.jpg"), 
+    jpegThumbnail: fs.readFileSync("./assets/Gallery/doc2.jpg"), 
     caption: tek,
     contextInfo: {
         mentionedJid: [m.sender], 
@@ -2964,7 +3001,7 @@ break
  case 'getses-jadibot':
      if (!isPremium) return reply(mess.check.premium)
      reply(mess.wait)
-     let sessionbot = await fs.readFileSync(`./lib/jadibot/session/${m.sender}/creds.json`)
+     let sessionbot = await fs.readFileSync(`./lib/jadibot/session/${m.sender.replace("@s.whatsapp.net", "")}/creds.json`)
      ptz.sendMessage(m.chat, {
          document: sessionbot,
          mimetype: 'application/json',
@@ -2975,7 +3012,7 @@ break
   break     
 case 'repses-jadibot':
  if (!isPremium) return reply(mess.check.premium)
- const folderPath4 = `./lib/jadibot/session/${m.sender}`; 
+ const folderPath4 = `./lib/jadibot/session/${m.sender.replace("@s.whatsapp.net", "")}`; 
 
  if (!fs.existsSync(folderPath4)) {
  return reply('*Tidak ada yang harus di perbaiki*');
@@ -2990,7 +3027,7 @@ case 'repses-jadibot':
  break  
 case 'stop-jadibot':
  if (!isPremium) return reply(mess.check.premium)
- const folderPath8 = `./lib/jadibot/session/${m.sender}`; 
+ const folderPath8 = `./lib/jadibot/session/${m.sender.replace("@s.whatsapp.net", "")}`; 
 
  if (!fs.existsSync(folderPath8)) {
  return reply('*Kamu Belum Jadibot.*');
@@ -3020,44 +3057,42 @@ reply(`NONE!`)
 break 
 case "renew-jadibot":
 if (!isPremium) return reply(mess.check.premium)
+if (m.sender === botNumber) return;
        let timerrenew = userdb.lastclaimday + 86400000
   if (new Date - userdb.lastclaimday < 86400000) return reply(`Anda sudah merenew harian hari ini\ntunggu selama ${msToTime(timerrenew - new Date())} lagi`)
-  addTimeJadibot(m.sender, 24)
+  addTimeJadibot(m.sender.replace("@s.whatsapp.net", ""), 24)
     userdb.lastclaimday = new Date * 1
 break
 case "start-jadibot":
  if (!isPremium) return reply(mess.check.premium)
- const folderPath = `./lib/jadibot/session/${m.sender}`; 
+ const folderPath = `./lib/jadibot/session/${m.sender.replace("@s.whatsapp.net", "")}`; 
 try {
 let user = [... new Set([...global.conns.filter(kiyoo => kiyoo.user).map(kiyoo => kiyoo.user)])]
-await jadibot(ptz, m.sender, m, m.sender)
+await jadibot(ptz, m.sender.replace("@s.whatsapp.net", ""), m, m.sender)
 } catch (err) {
 console.log(`Belum Ada User Yang Jadibot`)
 }
 break
 case "jadibot":
  if (!isPremium) return reply(mess.check.premium)
-ptz.sendPoll(m, "*`[ Pilih Methode ]`*", [`jadibot-scan`,`jadibot-pairing ${m.sender.replace("@s.whatsapp.net")}`])      
+ptz.sendPoll(m, "*`[ Pilih Methode ]`*", [`jadibot-scan`,`jadibot-pairing ${m.sender.replace("@s.whatsapp.net", "")}`])      
 break
   case "jadibot-scan":
     if (!isPremium) return reply(mess.check.premium)
         userdb.jadibot = true
         reply("Succes")
       
-        await jadibot(ptz, m.sender, m, m.sender, "scan")
+        await jadibot(ptz, m.sender.replace("@s.whatsapp.net", ""), m, m.sender, "scan")
         break
          case "jadibot-pairing":
         if (!isPremium) return reply(mess.check.premium)
       if (!text) return reply("mana nomor nya")
-   await jadibot(ptz, m.sender, m, m.sender, "pairing")
+   await jadibot(ptz, m.sender.replace("@s.whatsapp.net", ""), m, m.sender, "pairing")
 await sleep(4800)
-let jadibo = `*${X}Masukkan code dibawah ini untuk jadi bot sementara${X}*\n\n1. Klik titik tiga di pojok kanan atas\n2. Ketuk perangkat tertaut\n3. Ketuk tautkan perangkat\n4. Ketuk tautkan dengan nomor telepon saja\n5. Masukkan code di bawah ini\n\nNote: code dapat expired kapan saja!\n\nCode: ${X}${global.codepairing}${X}\nJika Code Error *undefined* ketik .repses-jadibot : Untuk memperbaiki session nomor anda`
-let onlyprivjdb = '*Code telah di kirim, silahkan cek PM-*'
+let jadibo = `*\`</ Masukkan code dibawah ini />\`*\n\nNote: code dapat expired kapan saja!\n*Code: \`[ ${global.codepairing} ]\`*\n\nJika Code Error *undefined* ketik .repses-jadibot : Untuk memperbaiki session nomor anda`
+//let onlyprivjdb = '*Code telah di kirim, silahkan cek PM-*'
 userdb.jadibot = true
  ptz.sendMessage(m.sender, {text:jadibo}, {quoted:fsaluran})
- setTimeout(() => {
- reply(onlyprivjdb)
- }, 1000)
 break
 case "expire-jadibot":
 if (!isPremium) return reply(mess.check.premium)
@@ -3081,7 +3116,9 @@ case "timeplus-jadibot":
 if (!isPremium) return reply(mess.check.premium)
 if (!text) return reply("Tolong masukan nomor, atau masukan ME untuk diri sendiri, di akhir tesk adalah jam, ini penambah waktu perjam: timeplus-jadibot 628312xxxx 2")
 let bawwng;
+bawwng = args[0]
 if (args[0] == "ME") { bawwng = m.sender }
+if (m.sender && bawwng === botNumber) return;
 addTimeJadibot(bawwng, args[1])
 break
 //=============[ DOWNLOADER ]=================//  
@@ -3331,7 +3368,6 @@ async function pepe(media) {
 	if (/image/g.test(mime) && !/webp/g.test(mime)) {
 		try {
 			const media = await ptz.downloadAndSaveMediaMessage(quoted)
-			let botNumber = await ptz.decodeJid(ptz.user.id)
 			let { img } = await pepe(media)
 			await ptz.query({
 				tag: 'iq',
@@ -3367,7 +3403,7 @@ case 'join':
 break      
 case 'leave':
     if (!isCreator) return reply(mess.owner)
-    if (!isGroup) {
+    if (isGroup) {
     reply('*`[ Gumdramon ] Bye Everyone`*')
     await ptz.groupLeave(m.chat)
     } else {
@@ -3542,16 +3578,32 @@ break
             break          
             case "public":
          if (!isCreator) return reply(mess.owner)
+         if (ptz.public) return 
         ptz.public = true 
         reply(mess.done)
         break
         
         case "self":
         if (!isCreator) return reply(mess.owner)
+        if (!ptz.public) return 
         ptz.public = false
         reply(mess.done)
         break
-        
+           case 'delete':
+            case 'del': {
+                if (!isCreator) return reply(mess.done)
+                if (!m.quoted) return
+                if (!m.quoted.isBaileys) return reply('The message was not sent by a bot!')
+                ptz.sendMessage(m.chat, {
+                    delete: {
+                        remoteJid: m.chat,
+                        fromMe: true,
+                        id: m.quoted.id,
+                        participant: m.quoted.sender
+                    }
+                })
+            }
+            break
         case 'getcase':
  if (!isCreator) return reply(mess.owner)
 if (!q) return reply(`Contoh penggunaan: ${prefix+command} menu`)
@@ -4350,6 +4402,175 @@ ptz.sendMessage(u,{image: {url: akunlo}, caption: ctf }, { quoted: ptz.chat })
 }
 break
 //=================================================//
+            case 'closetime':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins && !isCreator) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (args[1] == 'second') {
+                    var timer = args[0] * `1000`
+                } else if (args[1] == 'minute') {
+                    var timer = args[0] * `60000`
+                } else if (args[1] == 'hour') {
+                    var timer = args[0] * `3600000`
+                } else if (args[1] == 'day') {
+                    var timer = args[0] * `86400000`
+                } else {
+                    return reply('*Choose:*\nsecond\nminute\nhour\nday\n\n*Example*\n10 second')
+                }
+                reply(`Close time ${q} starting from now`)
+                setTimeout(() => {
+                    var nomor = m.participant
+                    const close = `*Closed* group closed by admin\nnow only admin can send messages`
+                    ptz.groupSettingUpdate(m.chat, 'announcement')
+                    reply(close)
+                }, timer)
+                break
+            case 'opentime':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins && !isCreator) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (args[1] == 'second') {
+                    var timer = args[0] * `1000`
+                } else if (args[1] == 'minute') {
+                    var timer = args[0] * `60000`
+                } else if (args[1] == 'hour') {
+                    var timer = args[0] * `3600000`
+                } else if (args[1] == 'day') {
+                    var timer = args[0] * `86400000`
+                } else {
+                    return reply('*Choose:*\nsecond\nminute\nhour\nday\n\n*Example*\n10 second')
+                }
+                reply(`Open time ${q} starting from now`)
+                setTimeout(() => {
+                    var nomor = m.participant
+                    const open = `*Opened* The group is opened by admin\nNow members can send messages`
+                    ptz.groupSettingUpdate(m.chat, 'not_announcement')
+                    reply(open)
+                }, timer)
+                break
+            case 'setname':
+            case 'setsubject':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins && !isGroupOwner && !isCreator) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (!text) return 'Text ?'
+                await ptz.groupUpdateSubject(m.chat, text).then((res) => reply(mess.success)).catch((err) => reply(json(err)))
+                break
+            case 'setdesc':
+            case 'setdesk':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins && !isGroupOwner && !isCreator) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (!text) return 'Text ?'
+                await ptz.groupUpdateDescription(m.chat, text).then((res) => reply(mess.success)).catch((err) => reply(json(err)))
+                break
+            case 'setppgroup':
+            case 'setppgrup':
+            case 'setppgc':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (!quoted) return reply(`Send/Reply Image With Caption ${prefix + command}`)
+                if (!/image/.test(mime)) return reply(`Send/Reply Image With Caption ${prefix + command}`)
+                if (/webp/.test(mime)) return reply(`Send/Reply Image With Caption ${prefix + command}`)
+                var medis = await ptz.downloadAndSaveMediaMessage(quoted, 'ppbot.jpeg')
+                if (args[0] == 'full') {
+                    var {
+                        img
+                    } = await generateProfilePicture(medis)
+                    await ptz.query({
+                        tag: 'iq',
+                        attrs: {
+                            to: m.chat,
+                            type: 'set',
+                            xmlns: 'w:profile:picture'
+                        },
+                        content: [{
+                            tag: 'picture',
+                            attrs: {
+                                type: 'image'
+                            },
+                            content: img
+                        }]
+                    })
+                    fs.unlinkSync(medis)
+                    reply(mess.done)
+                } else {
+                    var memeg = await ptz.updateProfilePicture(m.chat, {
+                        url: medis
+                    })
+                    fs.unlinkSync(medis)
+                    reply(mess.done)
+                }
+                break
+                    case 'everyone': case "tagall":
+            if (!isAdmins) return
+            ptz.sendMessage(m.chat, {
+          text: "@" + m.chat,
+          contextInfo: {
+           mentionedJid: (await (await ptz.groupMetadata(m.chat)).participants).map(a => a.id),
+          groupMentions: [
+          {
+       groupJid: m.chat,
+       groupSubject: 'everyone' 
+         }
+          ]
+           }
+             })
+             break
+            case 'totag':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (!isAdmins) return reply(mess.admin)
+                if (!m.quoted) return reply(`Reply messages with captions ${prefix + command}`)
+                ptz.sendMessage(m.chat, {
+                    forward: m.quoted.fakeObj,
+                    mentions: participants.map(a => a.id)
+                })
+                break
+            case 'group':
+            case 'grup':
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins && !isGroupOwner && !isCreator) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                if (args[0] === 'close') {
+                    await ptz.groupSettingUpdate(m.chat, 'announcement').then((res) => reply(`️Success In Closing The Group️`)).catch((err) => reply(json(err)))
+                } else if (args[0] === 'open') {
+                    await ptz.groupSettingUpdate(m.chat, 'not_announcement').then((res) => reply(`Success In Opening The Group️`)).catch((err) => reply(json(err)))
+                } else {
+                    reply(`*\`[ Mode ${command} ]\`*\n\nType ${prefix + command}open/close`)
+                }
+                break
+             case 'hidetag': case 'ht': {
+            if (!isAdmins) return
+            ptz.sendMessage(m.chat, { text : q ? q : '' , mentions: participants.map(a => a.id)}, {quoted:m})
+            }
+           break
+            
+        case 'linkgroup': case 'linkgc': case 'gclink': case 'grouplink': {
+         if (!m.isGroup) return reply(mess.group)
+          if (!isBotAdmins) return reply(mess.botAdmin)            
+          let response = await ptz.groupInviteCode(m.chat);
+          reply(`𝐺𝑟𝑜𝑢𝑝 𝑛𝑎𝑚𝑒:- ${groupMetadata.subject}\n𝐺𝑟𝑜𝑢𝑝 𝑙𝑖𝑛𝑘: https://chat.whatsapp.com/${response}`)
+         }
+          break
+            case 'resetlinkgc':
+            case 'resetlinkgroup':
+            case 'resetlinkgrup':
+            case 'revoke':
+            case 'resetlink':
+            case 'resetgrouplink':
+            case 'resetgclink':
+            case 'resetgruplink': 
+                if (!m.isGroup) return reply(mess.group)
+                if (!isAdmins && !isGroupOwner && !isCreator) return reply(mess.admin)
+                if (!isBotAdmins) return reply(mess.botAdmin)
+                await ptz.groupRevokeInvite(m.chat)
+                    .then(res => {
+                        reply(`Successful Reset, Group Invite Link ${groupMetadata.subject}`)
+                    }).catch((err) => reply(json(err)))
+                break           
+//=================================================//
 case "disk":{
 exec('cd && du -h --max-depth=1', (err, stdout) => {
 if (err) return reply(`${err}`)
@@ -4659,7 +4880,7 @@ break
  case 's': {
      if (!quoted) return reply(`Balas Video/Image Dengan Caption ${prefix + command}`)
      if (/image/.test(mime)) {
-         let media = await m?.quoted.download()
+         let media = await m.quoted.download()
          let encmedia = await ptz.sendImageAsSticker(m?.chat, media, m, {
              packname: global.packname,
              author: global.author
