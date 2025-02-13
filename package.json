@@ -49,6 +49,7 @@
     "performance-now": "*",
     "pino": "^8.17.2",
     "qrcode-terminal": "^0.12.0",
+    "rimraf": "^6.0.1"
     "steno": "^1.0.0",
     "syntax-error": "^1.4.0",
     "yargs": "^17.2.1",
